@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FMHY Link Checker</title>
+    <!-- Modern Typography: Inter & Fira Code -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&family=Inter:wght@400;500;600&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <!-- Navbar Removed -->
+
+    <!-- Main Editor Split View -->
+    <main class="editor-container">
+        <!-- Left Pane: Input -->
+        <section class="pane left-pane">
+            <div class="pane-header">Input</div>
+            <div class="pane-content editor-wrapper">
+                <div id="highlights-backdrop" class="highlights-backdrop"></div>
+                <textarea id="input-textarea" placeholder="Paste your URLs here..." spellcheck="false"
+                    class="transparent-textarea"></textarea>
+            </div>
+        </section>
+
+        <!-- Divider visually (styled in CSS) -->
+        <div class="pane-divider"></div>
+
+        <!-- Right Pane: Output (mdMD style preview) -->
+        <section class="pane right-pane">
+            <div class="pane-header">Output</div>
+            <div class="pane-content">
+                <textarea id="output-textarea" placeholder="Valid, non-conflicting links will appear here..." readonly
+                    spellcheck="false"></textarea>
+            </div>
+        </section>
+    </main>
+
+    <!-- (Problems panel removed) -->
+
+    <!-- Status Bar (VS Code Style) -->
+    <footer class="status-bar">
+        <div class="status-left">
+            <button id="status-error-btn" class="status-item error-indicator" title="View Conflicting Links">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="15" y1="9" x2="9" y2="15"></line>
+                    <line x1="9" y1="9" x2="15" y2="15"></line>
+                </svg>
+                <span id="error-count">0</span>
+            </button>
+            <div class="status-item warning-indicator" title="Warnings (Empty Lines / Invalid URLs)">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z">
+                    </path>
+                    <line x1="12" y1="9" x2="12" y2="13"></line>
+                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                </svg>
+                <span id="warning-count">0</span>
+            </div>
+            <div id="status-message" class="status-item status-text">
+                Ready
+            </div>
+        </div>
+        <div class="status-right" style="gap: 4px;">
+            <button id="btn-clear" class="status-item" title="Clear All Input (Alt+C)">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                </svg>
+                Clear Input
+            </button>
+            <button id="btn-copy" class="status-item" title="Copy Output to Clipboard (Ctrl+Shift+C)">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+                Copy Output
+            </button>
+            <button id="btn-force-check" class="status-item" title="Force verify links (Ctrl+Enter)"
+                style="display: none; background-color: rgba(255,255,255,0.2);">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;">
+                    <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                </svg>
+                Check Now
+            </button>
+            <label class="status-item" style="cursor: pointer; padding-left: 8px;">
+                <input type="checkbox" id="live-check-toggle" checked
+                    style="margin-right: 4px; accent-color: var(--accent);"> Live Check
+            </label>
+            <button id="btn-refresh" class="status-item" title="Refresh API Database (Ctrl+Shift+R)">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;">
+                    <path d="M21 2v6h-6"></path>
+                    <path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path>
+                    <path d="M3 22v-6h6"></path>
+                    <path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path>
+                </svg>
+                Refresh API
+            </button>
+            <button id="btn-popout" class="status-item" title="Pop out into Always-on-Top Window">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                    <polyline points="15 3 21 3 21 9"></polyline>
+                    <line x1="10" y1="14" x2="21" y2="3"></line>
+                </svg>
+            </button>
+            <div class="shortcut-menu-container">
+                <div class="status-item" title="Keyboard Shortcuts">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="2" y="4" width="20" height="16" rx="2" ry="2"></rect>
+                        <line x1="6" y1="8" x2="6" y2="8"></line>
+                        <line x1="10" y1="8" x2="10" y2="8"></line>
+                        <line x1="14" y1="8" x2="14" y2="8"></line>
+                        <line x1="18" y1="8" x2="18" y2="8"></line>
+                        <line x1="8" y1="12" x2="16" y2="12"></line>
+                        <line x1="6" y1="16" x2="8" y2="16"></line>
+                        <line x1="16" y1="16" x2="18" y2="16"></line>
+                        <line x1="10" y1="16" x2="14" y2="16"></line>
+                    </svg>
+                </div>
+                <div class="shortcut-tooltip">
+                    <div class="shortcut-row"><span>Verify Links</span><span class="kbd">Ctrl+Enter</span></div>
+                    <div class="shortcut-row"><span>Copy Output</span><span class="kbd">Ctrl+Shift+C</span></div>
+                    <div class="shortcut-row"><span>Clear Editor</span><span class="kbd">Alt+C</span></div>
+                    <div class="shortcut-row"><span>Refresh API</span><span class="kbd">Ctrl+Shift+R</span></div>
+                </div>
+            </div>
+            <button id="btn-theme" class="status-item" title="Toggle Light/Dark Theme">
+                <svg id="icon-sun" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="5"></circle>
+                    <line x1="12" y1="1" x2="12" y2="3"></line>
+                    <line x1="12" y1="21" x2="12" y2="23"></line>
+                    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                    <line x1="1" y1="12" x2="3" y2="12"></line>
+                    <line x1="21" y1="12" x2="23" y2="12"></line>
+                    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                    <line x1="18.36" y1="4.22" x2="19.78" y2="5.64"></line>
+                </svg>
+                <svg id="icon-moon" width="14" height="14" style="display: none;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                </svg>
+            </button>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
