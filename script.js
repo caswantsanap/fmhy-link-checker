@@ -9,7 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const inputTextarea = document.getElementById('input-textarea');
     const outputTextarea = document.getElementById('output-textarea');
     const highlightsBackdrop = document.getElementById('highlights-backdrop');
-    
+
     // Status Bar & Problems Panel
     const statusErrorBtn = document.getElementById('status-error-btn');
     const errorCountSpan = document.getElementById('error-count');
@@ -96,9 +96,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!outputTextarea.value) return;
         try {
             await navigator.clipboard.writeText(outputTextarea.value);
-            const originalText = btnCopy.textContent;
-            btnCopy.textContent = 'Copied!';
-            setTimeout(() => btnCopy.textContent = originalText, 2000);
+            const textSpan = btnCopy.querySelector('.btn-text');
+            if (textSpan) {
+                const originalText = textSpan.textContent;
+                textSpan.textContent = 'Copied!';
+                setTimeout(() => textSpan.textContent = originalText, 2000);
+            }
         } catch (err) {
             console.error('Failed to copy', err);
         }
@@ -114,30 +117,39 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function escapeHtml(unsafe) {
         return unsafe
-             .replace(/&/g, "&amp;")
-             .replace(/</g, "&lt;")
-             .replace(/>/g, "&gt;")
-             .replace(/"/g, "&quot;")
-             .replace(/'/g, "&#039;");
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
     }
 
-    // Split pane handle logic (optional enhancement, CSS handles basic resize)
+    // Split pane handle logic
     const divider = document.querySelector('.pane-divider');
     let isDragging = false;
-    
+
     divider.addEventListener('mousedown', (e) => {
         isDragging = true;
-        document.body.style.cursor = 'col-resize';
+        const isColumn = window.innerWidth <= 768;
+        document.body.style.cursor = isColumn ? 'row-resize' : 'col-resize';
     });
-    
+
     document.addEventListener('mousemove', (e) => {
         if (!isDragging) return;
         const container = document.querySelector('.editor-container');
         const containerRect = container.getBoundingClientRect();
-        const newLeftWidth = e.clientX - containerRect.left;
-        
-        if (newLeftWidth > 100 && newLeftWidth < containerRect.width - 100) {
-            document.querySelector('.left-pane').style.flex = `0 0 ${newLeftWidth}px`;
+        const isColumn = window.innerWidth <= 768;
+
+        if (isColumn) {
+            const newTopHeight = e.clientY - containerRect.top;
+            if (newTopHeight > 80 && newTopHeight < containerRect.height - 80) {
+                document.querySelector('.left-pane').style.flex = `0 0 ${newTopHeight}px`;
+            }
+        } else {
+            const newLeftWidth = e.clientX - containerRect.left;
+            if (newLeftWidth > 150 && newLeftWidth < containerRect.width - 150) {
+                document.querySelector('.left-pane').style.flex = `0 0 ${newLeftWidth}px`;
+            }
         }
     });
 
@@ -146,10 +158,19 @@ document.addEventListener('DOMContentLoaded', () => {
         document.body.style.cursor = 'default';
     });
 
+    let wasColumn = window.innerWidth <= 768;
+    window.addEventListener('resize', () => {
+        const isColumn = window.innerWidth <= 768;
+        if (isColumn !== wasColumn) {
+            document.querySelector('.left-pane').style.flex = '';
+            wasColumn = isColumn;
+        }
+    });
+
     // Fetch FMHY data
     async function fetchFMHYData() {
         if (fmhyData) return fmhyData; // Return memory cached
-        
+
         try {
             isFetching = true;
             updateStatus('Fetching 1.8MB Database...', true);
@@ -158,14 +179,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error('Network response was not ok');
             }
             fmhyData = await response.text();
-            
+
             // Save to local storage for offline use
             try {
                 localStorage.setItem('fmhyOfflineCache', fmhyData);
             } catch (e) {
                 console.warn("Could not save to localStorage (might be full)", e);
             }
-            
+
             updateStatus('Ready');
             return fmhyData;
         } catch (error) {
@@ -176,7 +197,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 updateStatus('Offline Mode (Using cached database)', false);
                 return fmhyData;
             }
-            
+
             updateStatus('Error: No internet & no offline cache found');
             console.error('Failed to fetch:', error);
             return null;
@@ -197,7 +218,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function checkLinks() {
         const text = inputTextarea.value;
         localStorage.setItem('linkCheckerInput', text);
-        
+
         if (!text.trim()) {
             updateStatus('Ready');
             outputTextarea.value = '';
@@ -213,7 +234,7 @@ document.addEventListener('DOMContentLoaded', () => {
         await new Promise(resolve => setTimeout(resolve, 10));
 
         const data = await fetchFMHYData();
-        
+
         if (!data) {
             return;
         }
@@ -221,12 +242,12 @@ document.addEventListener('DOMContentLoaded', () => {
         let conflictingUrls = new Set();
         let validUrls = new Set();
         warnings = 0;
-        
+
         // Find all URLs using Regex (Markdown/HTML extraction)
         // Allows robust extraction even if pasted as random text
         const urlRegex = /https?:\/\/[^\s<>"')\]]+/g;
         const matches = text.match(urlRegex) || [];
-        
+
         matches.forEach(url => {
             // Check if URL exists in FMHY
             if (data.includes(url)) {
@@ -238,14 +259,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Update output pane
         outputTextarea.value = Array.from(validUrls).join('\n');
-        
+
         // Update Syntax Highlighting Backdrop
         // Important: escape HTML to avoid executing pasted tags
         let highlightedHtml = escapeHtml(text);
-        
+
         // Sort descending by length so substrings aren't wrongly replaced first
         const sortedConflicts = Array.from(conflictingUrls).sort((a, b) => b.length - a.length);
-        
+
         sortedConflicts.forEach(url => {
             const escapedUrl = escapeHtml(url);
             // Quick global replace
@@ -259,7 +280,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const errorCount = conflictingUrls.size;
         errorCountSpan.textContent = errorCount;
         warningCountSpan.textContent = warnings;
-        
+
         if (errorCount > 0) {
             statusErrorBtn.classList.add('has-errors');
             updateStatus(`Found ${errorCount} conflicting links in your input`);
@@ -276,7 +297,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (liveCheckToggle.checked) {
             debounceTimer = setTimeout(checkLinks, 300);
         }
-        
+
         // Keep scrolling perfectly synced as typing makes text wrap
         highlightsBackdrop.scrollTop = inputTextarea.scrollTop;
     });
@@ -316,7 +337,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.querySelectorAll('link[rel="stylesheet"], style').forEach(el => {
                     pipWindow.document.head.appendChild(el.cloneNode(true));
                 });
-                
+
                 // Copy current theme class state
                 pipWindow.document.body.className = document.body.className;
 
@@ -331,14 +352,14 @@ document.addEventListener('DOMContentLoaded', () => {
                             <line x1="10" y1="14" x2="21" y2="3"></line>
                         </svg>
                         <h2 style="font-weight: 500;">Link Checker is running in a floating window</h2>
-                        <p style="margin-top: 8px; font-size: 14px;">Close the "Always on Top" window to return it here.</p>
+                        <p style="margin-top: 8px; font-size: 14px;">Press 'Back to tab' to return the window.</p>
                     </div>`;
 
                 const container = document.querySelector('.editor-container');
                 const statusBar = document.querySelector('.status-bar');
 
                 document.body.appendChild(placeholder);
-                
+
                 // Teleport the actual interactive DOM elements to the floating window
                 pipWindow.document.body.appendChild(container);
                 pipWindow.document.body.appendChild(statusBar);
@@ -350,11 +371,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 pipWindow.addEventListener("pagehide", () => {
                     const p = document.getElementById("pip-placeholder");
                     if (p) p.remove();
-                    
+
                     document.body.appendChild(container);
                     document.body.appendChild(statusBar);
                     btnPopout.style.display = 'flex';
-                    
+
                     pipWindow = null;
                 });
             } catch (error) {

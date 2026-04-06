@@ -395,3 +395,66 @@ body.light-mode .kbd {
 ::-webkit-scrollbar-corner {
     background: transparent;
 }
+
+/* Responsive adjustments for PiP / Small windows */
+@media (max-width: 768px), (max-height: 500px) {
+    .editor-container {
+        flex-direction: column;
+    }
+    .pane {
+        min-height: 60px; /* Ensure panes never completely collapse */
+        width: 100%;
+    }
+    .pane-header {
+        height: 28px;
+        font-size: 11px;
+    }
+    .pane-content {
+        padding: 4px;
+    }
+    .highlights-backdrop, .transparent-textarea, #output-textarea {
+        top: 4px;
+        left: 8px; /* give a bit of leading space */
+        right: 4px;
+        bottom: 4px;
+    }
+    .pane-divider {
+        width: 100%;
+        height: 6px;
+        border-left: none;
+        border-right: none;
+        border-top: 1px solid var(--border-color);
+        border-bottom: 1px solid var(--border-color);
+        cursor: row-resize;
+    }
+    .btn-text {
+        display: none;
+    }
+    .status-item {
+        padding: 0 4px;
+    }
+    .status-right {
+        gap: 6px;
+    }
+    #status-message {
+        max-width: 180px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .status-item svg {
+        margin-right: 0 !important;
+    }
+    .status-item input[type="checkbox"] {
+        margin-right: 0 !important;
+    }
+}
+
+@media (max-width: 480px) {
+    #status-message {
+        display: none;
+    }
+    .status-right {
+        gap: 4px;
+    }
+}
